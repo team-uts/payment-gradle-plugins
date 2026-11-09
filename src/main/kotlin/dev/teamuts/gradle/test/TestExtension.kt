@@ -1,5 +1,6 @@
 package dev.teamuts.gradle.test
 
+import javax.inject.Inject
 import org.gradle.api.Project
 import org.gradle.api.artifacts.Configuration
 import org.gradle.api.tasks.testing.Test
@@ -10,7 +11,6 @@ import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.gradle.kotlin.dsl.newInstance
 import org.gradle.kotlin.dsl.withType
-import javax.inject.Inject
 
 /**
  * The plugin creates the `mockitoAgent` configuration but deliberately leaves it empty, so the
@@ -20,6 +20,7 @@ import javax.inject.Inject
  *   mockitoAgent(libs.mockito) { isTransitive = false }
  * }
  * ```
+ *
  * With no dependency declared the agent is simply not attached.
  */
 abstract class TestExtension {
@@ -30,7 +31,7 @@ abstract class TestExtension {
   @Inject
   constructor(project: Project) {
     this.project = project
-    // because of afterEvaluate, the configuration is created but empty until the consumer adds a dependency
+    // the configuration is created but empty until the consumer adds a dependency
     this.mockitoAgent = project.configurations.maybeCreate(MOCKITO_AGENT_CONFIGURATION)
   }
 

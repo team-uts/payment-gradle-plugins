@@ -13,14 +13,13 @@ import org.gradle.api.Project
  *   apply(plugin = "dev.teamuts.gradle.payment-convention")
  * }
  * ```
- *
  */
 class PaymentConventionPlugin : Plugin<Project> {
   override fun apply(project: Project) {
     project.extensions.create(
       /* name = */ PaymentConventionExtension.EXTENSION,
       /* type = */ PaymentConventionExtension::class.java,
-      /* ...constructionArguments = */ project
+      /* ...constructionArguments = */ project,
     )
   }
 }

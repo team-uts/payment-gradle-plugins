@@ -19,10 +19,10 @@ java {
 }
 
 /**
- * A single entry point. `BuildLifecyclePlugin` stays a separate class.
- * It registers a build-scoped shared service, where this one configures per-project Test tasks.
- * But it is an implementation detail that PaymentConventionPlugin applies, not a published id.
- * Give it its own id only once something wants the summary without the test conventions.
+ * A single entry point. `BuildLifecyclePlugin` stays a separate class. It registers a build-scoped
+ * shared service, where this one configures per-project Test tasks. But it is an implementation
+ * detail that PaymentConventionPlugin applies, not a published id. Give it its own id only once
+ * something wants the summary without the test conventions.
  */
 gradlePlugin {
   plugins {
@@ -40,9 +40,9 @@ gradlePlugin {
  * `validatePlugins` never loads the plugin class, so a stale `implementationClass` or a renamed
  * package compiles, passes `check`, publishes, and only blows up in a consumer with
  * `ClassNotFoundException`. The tests in `src/test` apply the real plugin id to throwaway builds
- * through Gradle TestKit, which is the cheapest place to catch that.
- * No extra source set: `java-gradle-plugin` already puts the plugin-under-test metadata that
- * `withPluginClasspath()` reads on the default `test` source set.
+ * through Gradle TestKit, which is the cheapest place to catch that. No extra source set:
+ * `java-gradle-plugin` already puts the plugin-under-test metadata that `withPluginClasspath()`
+ * reads on the default `test` source set.
  */
 dependencies {
   testImplementation(platform(libs.junit.bom))
@@ -65,12 +65,12 @@ tasks.withType<Jar>().configureEach {
 
 /**
  * Releases are served as a plain Maven repository from the `gh-pages` branch, so consumers need
- * nothing but a `maven { url = ... }` line — `java-gradle-plugin` publishes a marker per plugin
- * id alongside the jar, which is what lets the `plugins {}` DSL resolve the ids by itself.
+ * nothing but a `maven { url = ... }` line — `java-gradle-plugin` publishes a marker per plugin id
+ * alongside the jar, which is what lets the `plugins {}` DSL resolve the ids by itself.
  *
- * The release workflow checks `gh-pages` out and points `-PpagesRepoDir` at it. Publishing into
- * the existing checkout matters: Gradle reads the maven-metadata.xml already there and merges the
- * new version into it. Publishing to an empty staging directory would list only the new version.
+ * The release workflow checks `gh-pages` out and points `-PpagesRepoDir` at it. Publishing into the
+ * existing checkout matters: Gradle reads the maven-metadata.xml already there and merges the new
+ * version into it. Publishing to an empty staging directory would list only the new version.
  */
 val pagesRepoDir =
   providers
