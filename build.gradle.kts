@@ -10,7 +10,7 @@ plugins {
   alias(libs.plugins.spotless)
 }
 
-group = "dev.teamuts"
+group = "dev.teamuts.gradle"
 
 description = "Shared Gradle convention plugins for payment-app and point-app"
 

@@ -71,7 +71,6 @@ jobs:
           ./gradlew publishAllPublicationsToPagesRepository \
             -Pversion="$VERSION" \
             -PpagesRepoDir="$GITHUB_WORKSPACE/repo"
-            --stacktrace
           test -f "repo/$ARTIFACT_PATH/$VERSION/payment-gradle-plugins-$VERSION.jar" \
             || { echo "::error::publish produced no jar for $VERSION"; exit 1; }
 
