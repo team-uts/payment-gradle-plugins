@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: 21
+  JAVA_DIST: 'temurin'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.ref }}
+
+      - uses: actions/setup-java@v6
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DIST }}
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      # The only check that actually loads the plugin class. `validatePlugins` does not, so a
+      # stale implementationClass or a renamed package otherwise reaches consumers intact.
+      # Run it first for a fast, attributable failure; `build` below then finds it up to date.
+      - name: Plugin functional test
+        run: ./gradlew clean test
+
+      # `build` runs compileKotlin, validatePlugins, spotlessCheck and the tests above.
+      - name: Build
+        run: ./gradlew clean build
+
+      # A green `build` does not prove a release will resolve, so run the publication the
+      # release workflow runs. Without -PpagesRepoDir this lands in build/maven-repo.
+      - name: Verify publication
+        run: ./gradlew publishAllPublicationsToPagesRepository -Pversion=ci-snapshot

@@ -1,0 +1,109 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, no v prefix (e.g. 0.2.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  JAVA_VERSION: 21
+  JAVA_DIST: 'temurin'
+  VERSION: ${{ inputs.version }}
+  ARTIFACT_PATH: dev/teamuts/gradle/payment-gradle-plugins
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Validate version and tag
+        run: |
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Version must be MAJOR.MINOR.PATCH, got '$VERSION'"
+            exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "::error::Tag v$VERSION already exists"
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v6
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DIST }}
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      # `build` runs compileKotlin, validatePlugins, spotlessCheck and the TestKit tests that
+      # apply the plugin by id to a throwaway build.
+      - name: Build
+        run: ./gradlew clean build -Pversion="$VERSION"
+
+      # The Maven repository served at https://team-uts.github.io/payment-gradle-plugins lives on
+      # the gh-pages branch. See README for the one-time bootstrap of that branch.
+      - name: Check out the Maven repository branch
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: gh-pages
+          path: pages
+
+      - name: Refuse to overwrite a published version
+        run: |
+          if [ -d "pages/$ARTIFACT_PATH/$VERSION" ]; then
+            echo "::error::$VERSION is already published. Consumers may have it cached; pick a new version."
+            exit 1
+          fi
+
+      # Publishing into the existing checkout lets Gradle merge the new version into the
+      # maven-metadata.xml that is already there instead of replacing it.
+      - name: Publish into the Maven repository
+        run: |
+          ./gradlew publishAllPublicationsToPagesRepository \
+            -Pversion="$VERSION" \
+            -PpagesRepoDir="$GITHUB_WORKSPACE/pages"
+          test -f "pages/$ARTIFACT_PATH/$VERSION/payment-gradle-plugins-$VERSION.jar" \
+            || { echo "::error::publish produced no jar for $VERSION"; exit 1; }
+
+      - name: Push the Maven repository
+        working-directory: pages
+        run: |
+          git config user.name  "team-uts-bot"
+          git config user.email "team-uts-bot@teamuts.noreply.github.com"
+          git add -A
+          git commit -m "Publish payment-gradle-plugins $VERSION"
+          git push origin gh-pages
+
+      - name: Create tag
+        run: |
+          git config user.name  "team-uts-bot"
+          git config user.email "team-uts-bot@teamuts.noreply.github.com"
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "v$VERSION" --title "v$VERSION" --generate-notes
+
+      # GitHub Pages deploys asynchronously, so the first consumer can otherwise race the deploy.
+      - name: Wait for GitHub Pages to serve the release
+        run: |
+          url="https://team-uts.github.io/payment-gradle-plugins/$ARTIFACT_PATH/$VERSION/payment-gradle-plugins-$VERSION.pom"
+          for _ in $(seq 1 30); do
+            if curl -fsS -o /dev/null "$url"; then
+              echo "Serving $url"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::warning::Pages has not served $url after 5 minutes; check the pages-build-deployment run."

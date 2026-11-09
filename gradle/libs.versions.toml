@@ -1,0 +1,16 @@
+[versions]
+# Must match the toolchain of the consumer apps (payment-app, point-app).
+java = "21"
+
+spotless = "8.10.3"
+
+# Functional tests only. Not part of the published plugin.
+junit = "5.11.4"
+
+[plugins]
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+
+[libraries]
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
