@@ -69,7 +69,8 @@ jobs:
       - name: Publish into the Maven repository
         run: |
           ./gradlew publishAllPublicationsToPagesRepository \
-            -Pversion="$VERSION"
+            -Pversion="$VERSION" \
+            -PpagesRepoDir="$GITHUB_WORKSPACE/repo"
           test -f "repo/$ARTIFACT_PATH/$VERSION/payment-gradle-plugins-$VERSION.jar" \
             || { echo "::error::publish produced no jar for $VERSION"; exit 1; }
 

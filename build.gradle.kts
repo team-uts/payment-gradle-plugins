@@ -84,11 +84,16 @@ tasks.withType<Jar>().configureEach {
  * nothing but a `maven { url = ... }` line — `java-gradle-plugin` publishes a marker per plugin id
  * alongside the jar, which is what lets the `plugins {}` DSL resolve the ids by itself.
  */
+val pagesRepoDir =
+  providers.gradleProperty("pagesRepoDir")
+    .map { file(it) }
+    .orElse(layout.buildDirectory.dir("repo").map { it.asFile })
+
 publishing {
   repositories {
     maven {
       name = "pages"
-      url = uri(layout.buildDirectory.dir("repo"))
+      url = uri(pagesRepoDir.get())
     }
   }
 }
