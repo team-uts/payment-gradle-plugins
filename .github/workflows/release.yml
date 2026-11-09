@@ -55,11 +55,11 @@ jobs:
         uses: actions/checkout@v7.0.1
         with:
           ref: gh-pages
-          path: pages
+          path: repo
 
       - name: Refuse to overwrite a published version
         run: |
-          if [ -d "pages/$ARTIFACT_PATH/$VERSION" ]; then
+          if [ -d "repo/$ARTIFACT_PATH/$VERSION" ]; then
             echo "::error::$VERSION is already published. Consumers may have it cached; pick a new version."
             exit 1
           fi
@@ -69,13 +69,12 @@ jobs:
       - name: Publish into the Maven repository
         run: |
           ./gradlew publishAllPublicationsToPagesRepository \
-            -Pversion="$VERSION" \
-            -PpagesRepoDir="$GITHUB_WORKSPACE/pages"
-          test -f "pages/$ARTIFACT_PATH/$VERSION/payment-gradle-plugins-$VERSION.jar" \
+            -Pversion="$VERSION"
+          test -f "repo/$ARTIFACT_PATH/$VERSION/payment-gradle-plugins-$VERSION.jar" \
             || { echo "::error::publish produced no jar for $VERSION"; exit 1; }
 
       - name: Push the Maven repository
-        working-directory: pages
+        working-directory: repo
         run: |
           git config user.name  "team-uts-bot"
           git config user.email "team-uts-bot@teamuts.noreply.github.com"

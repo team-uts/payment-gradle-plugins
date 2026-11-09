@@ -136,35 +136,6 @@ package rename compiles, passes `validatePlugins`, publishes cleanly, and then f
 consumer with `ClassNotFoundException`. Verified by reverting `implementationClass` to a stale
 value — `validatePlugins` still passed, all four tests failed.
 
-## Local development
-
-Fastest loop, no publishing at all — point the consumer at the working copy. The plugin is then
-rebuilt from source whenever it changes, and the `version` disappears from the `plugins {}` block:
-
-```kotlin
-// payment-app/settings.gradle.kts
-pluginManagement {
-  includeBuild("../payment-gradle-plugins")
-  repositories { gradlePluginPortal(); mavenCentral() }
-}
-```
-
-Or exercise the real publication against a local directory:
-
-```bash
-./gradlew publishAllPublicationsToPagesRepository -Pversion=0.1.0-local   # -> build/maven-repo
-```
-
-```kotlin
-// consumer settings.gradle.kts
-pluginManagement {
-  repositories {
-    maven { url = uri("../payment-gradle-plugins/build/maven-repo") }
-    gradlePluginPortal()
-  }
-}
-```
-
 ## Releasing
 
 ### One-time setup
@@ -200,26 +171,3 @@ The Maven version and the git tag are decoupled: tag `v0.1.0`, catalog `0.1.0`.
 
 Never overwrite a published version — consumers cache artifacts by coordinate.
 
-## Why not the alternatives
-
-Measured on this plugin, against a throwaway git origin:
-
-| Route | `plugins {}` DSL | Credentials | Private repo |
-| --- | --- | --- | --- |
-| **GitHub Pages Maven repo** (this) | yes, natively | none | no, must be public |
-| GitHub Packages | yes, natively | PAT with `read:packages`, **even for public packages** | yes |
-| Composite build / git submodule | yes, no version | git only | yes |
-| Gradle source dependency (`sourceControl`) | **no** | git only | yes |
-| JitPack | only via a `resolutionStrategy` id→module mapping | none | no, paid |
-
-Two findings behind that table:
-
-- **Source dependencies cannot supply a plugin to the `plugins {}` DSL.** Gradle fails with
-  *"could not resolve plugin artifact …gradle.plugin"* whether `sourceControl` sits at the top
-  level of `settings.gradle.kts` or inside `pluginManagement`. They only work through
-  `buildscript { classpath(...) }` + `apply(plugin = ...)`, and the git tag must exactly equal the
-  project's `version` property — a `v`-prefixed tag does not match.
-- **JitPack cannot serve plugin markers.** A marker lives under the group `<plugin-id>`, and
-  JitPack only serves `com.github.<user>`, so every consumer needed an `eachPlugin` block
-  mapping the ids onto `com.github.team-uts:payment-gradle-plugins`. Hosting the Maven layout
-  ourselves removes that.

@@ -10,6 +10,8 @@ plugins {
   alias(libs.plugins.spotless)
 }
 
+group = "dev.teamuts"
+
 description = "Shared Gradle convention plugins for payment-app and point-app"
 
 java {
@@ -63,26 +65,30 @@ tasks.withType<Jar>().configureEach {
   isReproducibleFileOrder = true
 }
 
+// https://docs.gradle.org/current/userguide/java_testing.html?utm_source=chatgpt.com#sec:publishing_test_fixtures
+(components["java"] as AdhocComponentWithVariants).also { javaComponent ->
+  // test-fixtures publication skipped.
+  listOf(
+      "testFixturesApiElements",
+      "testFixturesRuntimeElements",
+    )
+    .forEach { variant ->
+      javaComponent.withVariantsFromConfiguration(configurations[variant]) {
+        skip()
+      }
+    }
+}
+
 /**
  * Releases are served as a plain Maven repository from the `gh-pages` branch, so consumers need
  * nothing but a `maven { url = ... }` line — `java-gradle-plugin` publishes a marker per plugin id
  * alongside the jar, which is what lets the `plugins {}` DSL resolve the ids by itself.
- *
- * The release workflow checks `gh-pages` out and points `-PpagesRepoDir` at it. Publishing into the
- * existing checkout matters: Gradle reads the maven-metadata.xml already there and merges the new
- * version into it. Publishing to an empty staging directory would list only the new version.
  */
-val pagesRepoDir =
-  providers
-    .gradleProperty("pagesRepoDir")
-    .map { file(it) }
-    .orElse(layout.buildDirectory.dir("maven-repo").map { it.asFile })
-
 publishing {
   repositories {
     maven {
       name = "pages"
-      url = uri(pagesRepoDir.get())
+      url = uri(layout.buildDirectory.dir("repo"))
     }
   }
 }
