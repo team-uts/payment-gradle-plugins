@@ -85,7 +85,8 @@ tasks.withType<Jar>().configureEach {
  * alongside the jar, which is what lets the `plugins {}` DSL resolve the ids by itself.
  */
 val pagesRepoDir =
-  providers.gradleProperty("pagesRepoDir")
+  providers
+    .gradleProperty("pagesRepoDir")
     .map { file(it) }
     .orElse(layout.buildDirectory.dir("repo").map { it.asFile })
 
