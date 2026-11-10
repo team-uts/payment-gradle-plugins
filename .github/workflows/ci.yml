@@ -41,6 +41,7 @@ jobs:
         run: ./gradlew clean build
 
       # A green `build` does not prove a release will resolve, so run the publication the
-      # release workflow runs. Without -PpagesRepoDir this lands in build/maven-repo.
+      # release workflow runs. Without -PpagesRepoDir this lands in build/maven-repo and is
+      # thrown away; the release workflow points it at <gh-pages checkout>/maven-repo instead.
       - name: Verify publication
         run: ./gradlew publishAllPublicationsToPagesRepository -Pversion=ci-snapshot

@@ -6,7 +6,12 @@ Shared Gradle convention plugins for [`payment-app`](https://github.com/team-uts
 Distributed as a plain Maven repository served by GitHub Pages from this repo's `gh-pages`
 branch - no credentials on the consumer side, and no JitPack.
 
-- Repository: `https://team-uts.github.io/payment-gradle-plugins`
+The artifact tree lives under `maven-repo/` on `gh-pages` rather than at the branch root, so the
+branch stays free for anything else Pages should serve. Inside that root the layout is the standard
+Maven one and is **not** configurable - `dev/teamuts/gradle/payment-gradle-plugins/<version>/` is
+the path Gradle derives from the coordinates when it goes looking for the POM.
+
+- Repository: `https://team-uts.github.io/payment-gradle-plugins/maven-repo`
 - Coordinates: `dev.teamuts.gradle:payment-gradle-plugins:<version>`
 - Plugin id: `dev.teamuts.gradle.payment-convention`
 - Gradle: 9.5.1 (pinned - see [Gradle version policy](#gradle-version-policy))
@@ -47,7 +52,7 @@ One repository line. Because the publication includes a plugin **marker** per id
 ```kotlin
 pluginManagement {
   repositories {
-    maven { url = uri("https://team-uts.github.io/payment-gradle-plugins") }
+    maven { url = uri("https://team-uts.github.io/payment-gradle-plugins/maven-repo") }
     gradlePluginPortal()
     mavenCentral()
   }
@@ -147,7 +152,7 @@ to match the consumer apps.
 `.github/workflows/ci.yml` runs on every push to `main`: the functional tests first (fast,
 attributable failure), then `build`, then `publishAllPublicationsToPagesRepository
 -Pversion=ci-snapshot`. That last step exists because a green `build` does not prove the release
-publication resolves; without `-PpagesRepoDir` it lands in `build/repo` and is thrown away.
+publication resolves; without `-PpagesRepoDir` it lands in `build/maven-repo` and is thrown away.
 
 ## Releasing
 
@@ -175,9 +180,9 @@ Then `Settings` → `Pages` → Source: *Deploy from a branch*, Branch: `gh-page
 
 1. validates the version is `MAJOR.MINOR.PATCH` and that `v<version>` is not already tagged,
 2. runs `build` (compile, `validatePlugins`, `spotlessCheck`, tests) with `-Pversion=<version>`,
-3. checks out `gh-pages` into `maven-repo/`, refuses to overwrite an already-published version, and
-   publishes into that checkout with `-PpagesRepoDir` so Gradle **merges** the new version into the
-   existing `maven-metadata.xml` rather than replacing it,
+3. checks out `gh-pages` into `pages/`, refuses to overwrite an already-published version, and
+   publishes into `pages/maven-repo/` with `-PpagesRepoDir` so Gradle **merges** the new version
+   into the existing `maven-metadata.xml` rather than replacing it,
 4. pushes `gh-pages`, tags `v<version>`, creates the GitHub Release with generated notes,
 5. polls Pages for up to 5 minutes until the new `.pom` is actually being served.
 

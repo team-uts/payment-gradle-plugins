@@ -15,7 +15,10 @@ env:
   JAVA_VERSION: 21
   JAVA_DIST: 'temurin'
   VERSION: ${{ inputs.version }}
+  PAGES_URL: "https://team-uts.github.io/payment-gradle-plugins"
   ARTIFACT_PATH: maven-repo
+  GROUP_PATH: dev/teamuts/gradle
+  ARTIFACT_ID: payment-gradle-plugins
 
 jobs:
   release:
@@ -49,8 +52,8 @@ jobs:
       - name: Build
         run: ./gradlew clean build -Pversion="$VERSION"
 
-      # The Maven repository served at https://team-uts.github.io/payment-gradle-plugins lives on
-      # the gh-pages branch. See README for the one-time bootstrap of that branch.
+      # The Maven repository served at https://team-uts.github.io/payment-gradle-plugins/maven-repo
+      # lives on the gh-pages branch. See README for the one-time bootstrap of that branch.
       - name: Check out the Maven repository branch
         uses: actions/checkout@v7.0.1
         with:
@@ -59,7 +62,7 @@ jobs:
 
       - name: Refuse to overwrite a published version
         run: |
-          if [ -d "pages/$ARTIFACT_PATH/$VERSION" ]; then
+          if [ -d "pages/$ARTIFACT_PATH/$GROUP_PATH/$ARTIFACT_ID/$VERSION" ]; then
             echo "::error::$VERSION is already published. Consumers may have it cached; pick a new version."
             exit 1
           fi
@@ -70,10 +73,10 @@ jobs:
         run: |
           ./gradlew publishAllPublicationsToPagesRepository \
             -Pversion="$VERSION" \
-            -PpagesRepoDir="$GITHUB_WORKSPACE/pages"
+            -PpagesRepoDir="$GITHUB_WORKSPACE/pages/$ARTIFACT_PATH"
 
-          test -f "pages/$ARTIFACT_PATH/$VERSION/payment-gradle-plugins-$VERSION.jar" \
-            || { echo "::error::publish produced no jar for $VERSION"; exit 1; }
+          jar="pages/$ARTIFACT_PATH/$GROUP_PATH/$ARTIFACT_ID/$VERSION/$ARTIFACT_ID-$VERSION.jar"
+          test -f "$jar" || { echo "::error::publish produced no jar at $jar"; exit 1; }
 
       - name: Push the Maven repository
         working-directory: pages
@@ -99,7 +102,7 @@ jobs:
       # GitHub Pages deploys asynchronously, so the first consumer can otherwise race the deploy.
       - name: Wait for GitHub Pages to serve the release
         run: |
-          url="https://team-uts.github.io/payment-gradle-plugins/$ARTIFACT_PATH/$VERSION/payment-gradle-plugins-$VERSION.pom"
+          url="$PAGES_URL/$ARTIFACT_PATH/$GROUP_PATH/$ARTIFACT_ID/$VERSION/$ARTIFACT_ID-$VERSION.pom"
           for _ in $(seq 1 30); do
             if curl -fsS -o /dev/null "$url"; then
               echo "Serving $url"

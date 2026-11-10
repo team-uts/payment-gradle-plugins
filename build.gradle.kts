@@ -83,12 +83,18 @@ tasks.withType<Jar>().configureEach {
  * Releases are served as a plain Maven repository from the `gh-pages` branch, so consumers need
  * nothing but a `maven { url = ... }` line — `java-gradle-plugin` publishes a marker per plugin id
  * alongside the jar, which is what lets the `plugins {}` DSL resolve the ids by itself.
+ *
+ * `pagesRepoDir` is the *root* of that repository, i.e. the directory the consumer's `url` points
+ * at. The release workflow passes `<gh-pages checkout>/maven-repo` so the artifact tree does not
+ * sit at the branch root. Below the root Gradle always writes the standard Maven layout,
+ * `dev/teamuts/gradle/payment-gradle-plugins/<version>/`; that is not a knob, it is the path a
+ * consumer derives from the coordinates in order to find the POM.
  */
 val pagesRepoDir =
   providers
     .gradleProperty("pagesRepoDir")
     .map { file(it) }
-    .orElse(layout.buildDirectory.dir("repo").map { it.asFile })
+    .orElse(layout.buildDirectory.dir("maven-repo").map { it.asFile })
 
 publishing {
   repositories {
