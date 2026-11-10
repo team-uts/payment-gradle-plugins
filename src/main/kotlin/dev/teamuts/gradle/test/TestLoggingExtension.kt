@@ -23,10 +23,10 @@ import org.gradle.kotlin.dsl.withType
  *
  * With no dependency declared the agent is simply not attached.
  */
-abstract class TestExtension {
+abstract class TestLoggingExtension {
   private val project: Project
   private val mockitoAgent: Configuration
-  private var enabled: Boolean = true
+  var enabled: Boolean = true
 
   @Inject
   constructor(project: Project) {
@@ -37,10 +37,7 @@ abstract class TestExtension {
 
   companion object {
     private const val MOCKITO_AGENT_CONFIGURATION = "mockitoAgent"
-  }
-
-  fun setEnabled(enabled: Boolean) {
-    this.enabled = enabled
+    const val NAME = "testLogging"
   }
 
   fun configure() {
@@ -54,7 +51,7 @@ abstract class TestExtension {
 
       jvmArgs("-Xshare:off") // deactivate Class Data Sharing(CDS)
 
-      if (enabled.not()) {
+      if (this@TestLoggingExtension.enabled.not()) {
         return@configureEach
       }
 

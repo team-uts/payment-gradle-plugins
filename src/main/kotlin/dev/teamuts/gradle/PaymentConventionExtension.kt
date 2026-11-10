@@ -1,17 +1,21 @@
 package dev.teamuts.gradle
 
-import dev.teamuts.gradle.test.TestExtension
+import dev.teamuts.gradle.test.TestLoggingExtension
 import org.gradle.api.Project
 
 abstract class PaymentConventionExtension(project: Project) {
   init {
-    val testExtension = project.objects.newInstance(TestExtension::class.java, project)
-    project.afterEvaluate {
-      testExtension.configure()
-    }
+    val testExtension =
+      project.extensions.create(
+        TestLoggingExtension.NAME,
+        TestLoggingExtension::class.java,
+        project,
+      )
+
+    project.afterEvaluate { testExtension.configure() }
   }
 
   companion object {
-    const val EXTENSION = "paymentConvention"
+    const val NAME = "paymentConvention"
   }
 }

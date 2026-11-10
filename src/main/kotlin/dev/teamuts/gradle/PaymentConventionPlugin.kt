@@ -17,7 +17,7 @@ import org.gradle.api.Project
 class PaymentConventionPlugin : Plugin<Project> {
   override fun apply(project: Project) {
     project.extensions.create(
-      /* name = */ PaymentConventionExtension.EXTENSION,
+      /* name = */ PaymentConventionExtension.NAME,
       /* type = */ PaymentConventionExtension::class.java,
       /* ...constructionArguments = */ project,
     )

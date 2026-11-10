@@ -15,7 +15,7 @@ env:
   JAVA_VERSION: 21
   JAVA_DIST: 'temurin'
   VERSION: ${{ inputs.version }}
-  ARTIFACT_PATH: dev/teamuts/gradle/payment-gradle-plugins
+  ARTIFACT_PATH: maven-repo
 
 jobs:
   release:
@@ -55,11 +55,11 @@ jobs:
         uses: actions/checkout@v7.0.1
         with:
           ref: gh-pages
-          path: repo
+          path: pages
 
       - name: Refuse to overwrite a published version
         run: |
-          if [ -d "repo/$ARTIFACT_PATH/$VERSION" ]; then
+          if [ -d "pages/$ARTIFACT_PATH/$VERSION" ]; then
             echo "::error::$VERSION is already published. Consumers may have it cached; pick a new version."
             exit 1
           fi
@@ -70,12 +70,13 @@ jobs:
         run: |
           ./gradlew publishAllPublicationsToPagesRepository \
             -Pversion="$VERSION" \
-            -PpagesRepoDir="$GITHUB_WORKSPACE/repo"
-          test -f "repo/$ARTIFACT_PATH/$VERSION/payment-gradle-plugins-$VERSION.jar" \
+            -PpagesRepoDir="$GITHUB_WORKSPACE/pages"
+
+          test -f "pages/$ARTIFACT_PATH/$VERSION/payment-gradle-plugins-$VERSION.jar" \
             || { echo "::error::publish produced no jar for $VERSION"; exit 1; }
 
       - name: Push the Maven repository
-        working-directory: repo
+        working-directory: pages
         run: |
           git config user.name  "team-uts-bot"
           git config user.email "team-uts-bot@teamuts.noreply.github.com"
