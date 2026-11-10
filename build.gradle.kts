@@ -51,9 +51,12 @@ dependencies {
   testImplementation(gradleTestKit())
   testImplementation(libs.junit.jupiter)
   testRuntimeOnly(libs.junit.platform.launcher)
+
+  testFixturesImplementation(gradleTestKit())
+  testFixturesImplementation("com.hubspot.jinjava:jinjava:2.8.4")
 }
 
-tasks.test {
+tasks.withType<Test> {
   useJUnitPlatform()
 
   // Keeps the throwaway builds on the same JUnit as this repo's catalog.
@@ -117,7 +120,8 @@ spotless {
 
   kotlinGradle {
     target("**/*.gradle.kts")
-    targetExclude("**/build/**")
+    // The fixture templates carry `{{...}}` placeholders, so they are not parseable Kotlin.
+    targetExclude("**/build/**", "src/testFixtures/resources/**")
 
     ktfmt().googleStyle()
     trimTrailingWhitespace()

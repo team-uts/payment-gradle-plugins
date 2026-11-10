@@ -1,12 +1,14 @@
 package dev.teamuts.gradle
 
+import dev.teamuts.gradle.fixtures.GradleRunnerExecutor
+import dev.teamuts.gradle.fixtures.TestGradleFixture
+import dev.teamuts.gradle.fixtures.TestGradleVersions.MOCKITO_VERSION
+import dev.teamuts.gradle.flyway.FlywayManager
 import java.io.File
-import org.gradle.testkit.runner.BuildResult
-import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 
@@ -17,14 +19,20 @@ import org.junit.jupiter.api.io.TempDir
  */
 class PaymentGradleConventionPluginFunctionalTest {
 
-  @TempDir lateinit var projectDir: File
+  @TempDir private lateinit var projectDir: File
+  private lateinit var testGradleFixture: TestGradleFixture
+
+  @BeforeEach
+  fun setup() {
+    // The fixture template carries `{{...}}` placeholders, so it is not parseable Kotlin.
+    testGradleFixture = TestGradleFixture(projectDir)
+  }
 
   @Test
-  @DisplayName("applies by plugin id and reports per-test and aggregated results")
   fun appliesByPluginId() {
-    writeFixture()
+    testGradleFixture.write()
 
-    val buildResult = run("test")
+    val buildResult = GradleRunnerExecutor.execute(projectDir = projectDir, "test")
     val output = buildResult.output
 
     assertEquals(TaskOutcome.SUCCESS, buildResult.task(":test")?.outcome, output)
@@ -33,22 +41,20 @@ class PaymentGradleConventionPluginFunctionalTest {
   }
 
   @Test
-  @DisplayName("attaches the Mockito agent when the mockitoAgent configuration is populated")
   fun attachesMockitoAgent() {
-    writeFixture(mockitoAgent = true)
+    testGradleFixture.write(mockitoAgent = true)
 
-    val output = run("test").output
+    val output = GradleRunnerExecutor.executeAndReturnOutcome(projectDir = projectDir, "test")
 
     assertTrue(output.contains("-javaagent:"), output)
-    assertTrue(output.contains("mockito-core"), output)
+    assertTrue(output.contains("mockito-core/${MOCKITO_VERSION}"), output)
   }
 
   @Test
-  @DisplayName("adds no -javaagent when nothing declares a mockitoAgent dependency")
   fun skipsMockitoAgentWhenUndeclared() {
-    writeFixture(mockitoAgent = false)
+    testGradleFixture.write(mockitoAgent = false)
 
-    val output = run("test").output
+    val output = GradleRunnerExecutor.executeAndReturnOutcome(projectDir = projectDir, "test")
 
     // An empty configuration must contribute no argument at all; a bare `-javaagent:` would
     // kill the test JVM.
@@ -56,107 +62,16 @@ class PaymentGradleConventionPluginFunctionalTest {
   }
 
   @Test
-  @DisplayName("exposes the helper classes to consumer build scripts under their published names")
   fun exposesHelperClassesToBuildScripts() {
-    writeFixture(
-      extraBuildScript =
-        """
-        tasks.register("printHelpers") {
-          val configFiles =
-            dev.teamuts.gradle.flyway.FlywayManager.init().getConfigFiles().joinToString()
-          val profile = dev.teamuts.gradle.flyway.BuildProfile.init().getProfileName()
-          doLast {
-            println("CONFIG-FILES " + configFiles)
-            println("PROFILE " + profile)
-          }
-        }
-        """
-          .trimIndent()
+    testGradleFixture.write()
+
+    val output =
+      GradleRunnerExecutor.executeAndReturnOutcome(projectDir = projectDir, "printHelpers")
+
+    assertTrue(
+      output.contains("CONFIG-FILES >> ${FlywayManager.MIGRATION_PATH}/flyway-none.conf"),
+      output,
     )
-
-    val output = run("printHelpers").output
-
-    assertTrue(output.contains("CONFIG-FILES src/main/resources/db/flyway-none.conf"), output)
-    assertTrue(output.contains("PROFILE none"), output)
-  }
-
-  private fun run(vararg arguments: String): BuildResult =
-    GradleRunner.create()
-      .withProjectDir(projectDir)
-      .withPluginClasspath()
-      .withArguments(*arguments, "--stacktrace")
-      .forwardOutput()
-      .build()
-
-  private fun writeFixture(mockitoAgent: Boolean = true, extraBuildScript: String = "") {
-    val junitVersion = System.getProperty("junit.version")
-    val agentDependency =
-      if (mockitoAgent) {
-        """"mockitoAgent"("org.mockito:mockito-core:$MOCKITO_VERSION") { isTransitive = false }"""
-      } else {
-        ""
-      }
-
-    projectDir
-      .resolve("settings.gradle.kts")
-      .writeText(
-        """
-        dependencyResolutionManagement { repositories { mavenCentral() } }
-
-        rootProject.name = "fixture"
-        """
-          .trimIndent()
-      )
-
-    projectDir
-      .resolve("build.gradle.kts")
-      .writeText(
-        """
-        plugins {
-          java
-          id("dev.teamuts.gradle.payment-convention")
-        }
-
-        java { toolchain { languageVersion = JavaLanguageVersion.of($TOOLCHAIN) } }
-
-        dependencies {
-          testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
-          testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-          $agentDependency
-        }
-
-        $extraBuildScript
-        """
-          .trimIndent()
-      )
-
-    val testSource = projectDir.resolve("src/test/java/demo/DemoTest.java")
-    testSource.parentFile.mkdirs()
-    testSource.writeText(
-      """
-      package demo;
-
-      import java.lang.management.ManagementFactory;
-      import org.junit.jupiter.api.Test;
-
-      class DemoTest {
-        @Test
-        void ok() {
-          // Surfaced through the convention's STANDARD_ERROR test logging.
-          System.err.println(
-              "JVM-ARGS "
-                  + ManagementFactory.getRuntimeMXBean().getInputArguments().stream()
-                      .filter(a -> a.startsWith("-javaagent") || a.startsWith("-Xshare"))
-                      .toList());
-        }
-      }
-      """
-        .trimIndent()
-    )
-  }
-
-  private companion object {
-    const val MOCKITO_VERSION = "5.23.0"
-    const val TOOLCHAIN = 21
+    assertTrue(output.contains("PROFILE >> none"), output)
   }
 }

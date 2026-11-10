@@ -4,9 +4,9 @@ class FlywayManager(private val activeProfile: BuildProfile) {
   companion object {
     private const val MIGRATION_DIR = "migration"
     private const val SEED_DIR = "seed"
-    private const val MIGRATION_PATH = "src/main/resources/db"
     private const val USER = "user"
     private const val DB_PASSWORD = "password"
+    const val MIGRATION_PATH = "src/main/resources/db"
 
     fun init(): FlywayManager {
       return FlywayManager(activeProfile = BuildProfile.init())

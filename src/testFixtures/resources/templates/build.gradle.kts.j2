@@ -1,0 +1,34 @@
+import dev.teamuts.gradle.flyway.BuildProfile
+import dev.teamuts.gradle.flyway.FlywayManager
+
+plugins {
+  java
+  id("dev.teamuts.gradle.payment-convention")
+}
+
+java {
+  toolchain {
+    languageVersion = JavaLanguageVersion.of({{javaToolchain}})
+  }
+}
+
+{% if mockitoAgent %}
+val mockitoAgent = configurations.maybeCreate("mockitoAgent")
+{% endif %}
+dependencies {
+  testImplementation("org.junit.jupiter:junit-jupiter:{{junitVersion}}")
+  testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+  {% if mockitoAgent %}
+  mockitoAgent("org.mockito:mockito-core:{{mockitoVersion}}") { isTransitive = false }
+  {% endif %}
+}
+
+// flyway modules test
+tasks.register("printHelpers") {
+  val configFiles = FlywayManager.init().getConfigFiles().joinToString()
+  val profile = BuildProfile.init().getProfileName()
+  doLast {
+    println("CONFIG-FILES >> $configFiles")
+    println("PROFILE >> $profile")
+  }
+}

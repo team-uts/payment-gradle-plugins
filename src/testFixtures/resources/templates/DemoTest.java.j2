@@ -1,0 +1,16 @@
+package demo;
+
+import java.lang.management.ManagementFactory;
+import org.junit.jupiter.api.Test;
+
+class DemoTest {
+  @Test
+  void ok() {
+    // Surfaced through the convention's STANDARD_ERROR test logging.
+    System.err.println(
+        "JVM-ARGS "
+            + ManagementFactory.getRuntimeMXBean().getInputArguments().stream()
+                .filter(a -> a.startsWith("-javaagent") || a.startsWith("-Xshare"))
+                .toList());
+  }
+}
